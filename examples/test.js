@@ -35,6 +35,22 @@ var x = function () {
         return a;
     };
 
+    genetic.mutate = function (entity) {
+
+        var len = entity.length;
+        var ca = Math.floor(Math.random() * len);
+        var cb = Math.floor(Math.random() * len);
+
+        /*
+         * swap corresponding bits between ca and cb positions
+         */
+        var tmp = entity[cb];
+        entity[cb] = entity[ca];
+        entity[ca] = tmp;
+
+        return entity;
+    };
+
     console.log("Hello");
     var g = new Graph();
     console.log(g);
