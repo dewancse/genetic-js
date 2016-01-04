@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <title>Drawing SMT using Genetic.js</title>
+    <style>
+        path.link {
+            fill: none;
+            stroke-width: 1.5px;
+        }
+
+        circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+
+        text {
+            fill: #000;
+            font: 10px sans-serif;
+            pointer-events: none;
+        }
+
+        @media screen and (min-width: 600px) {
+            .graph {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                border: 1px solid #e3e3e3;
+            }
+        }
+
+    </style>
+
+    <script src="../lib/genetic.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+
+</head>
+<body>
+
+<svg id="svgVisualize" class="graph"></svg>
+<script>
+
+    var genetic = Genetic.create();
+    genetic.optimize = Genetic.Optimize.Maximize;
+    genetic.select1 = Genetic.Select1.Tournament2;
+    genetic.select2 = Genetic.Select2.Tournament2;
+
+    var nodes = [];
+    var edges = [];
+
+    d3.json("data.json", function (data) {
+
+        for (var i = 0; i < data["nodes"].length; i++) {
+            nodes[i] = data["nodes"][i];
+        }
+
+        for (var j = 0; j < data["edges"].length; j++) {
+            edges.push([]);
+            edges[j].push(new Array(4));
+            for (var k = 0; k < 4; k++) {
+                if (data["edges"][j][3] === "macaca mulatta" || data["edges"][j][3] === "macaca fuscata") {
+                    edges[j][3] = "macaque";
+                }
+                else if (data["edges"][j][3] == "rattus norvegicus") {
+                    edges[j][3] = "Rat";
+                }
+                else {
+                    edges[j][k] = data["edges"][j][k];
+                }
+            }
+        }
+
+        var config = {
+            "iterations": 10
+            , "size": 7
+            , "crossover": 1
+            , "mutation": 1
+            , "skip": 0
+        };
+
+        var userData = {
+            "nodes": nodes,
+            "edges": edges
+        };
+
+        console.log(userData["nodes"]);
+        console.log(userData["edges"]);
+
+        genetic.evolve(config, userData);
+    })
+
+    genetic.seed = function () {
+
+        var len = this.userData["edges"].length;
+        var i = Math.floor(Math.random() * len);
+
+        var a = [];
+        a.push(this.userData["edges"][i][0],this.userData["edges"][i][1]);
+
+        console.log("SEED: " + a);
+
+        return a;
+    };
+
+    genetic.mutate = function (entity) {
+
+        console.log("MUTATE: " + entity[0] + " " + entity[1]);
+
+        var tmp = entity[1];
+        entity[1] = entity[0];
+        entity[0] = tmp;
+
+        console.log("after MUTATE: " + entity[0] + " " + entity[1]);
+
+        return entity;
+    };
+
+    genetic.crossover = function (mother, father) {
+
+        console.log("crossover: " + father + " MOTHER: " + mother);
+        var son = [father[0], mother[1]];
+        var daughter = [mother[0], father[1]];
+
+        console.log("after CROSSOVER: " + son + " " + daughter);
+        return [son, daughter];
+    };
+
+    genetic.fitness = function (entity) {
+
+        var fitness = 0;
+
+        function match(a, b) {
+            for (var i = 0; i < b.length; i++) {
+                if (a[0] == b[i][0] && a[1] == b[i][1]) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // set 1 to fitness if connection exists in the JSON dataset
+        if (match(entity, this.userData["edges"])) {
+            fitness += 1;
+            console.log("MATCH: " + fitness + " " + entity);
+        }
+
+        console.log("FITNESS: " + fitness + " " + entity);
+
+        return fitness;
+    };
+
+    genetic.generation = function (pop, generation, stats) {
+    };
+
+    var solutions = [];
+    genetic.notification = function (pop, generation, stats, isFinished) {
+
+        for (var i = 0; i < pop.length; i++) {
+            console.log("Length: ", + pop.length);
+            if (pop[i].fitness >= 1)
+                solutions.push(pop[i].entity);
+        }
+
+        //draw(solutions);
+
+        if (isFinished) {
+            for (var i = 0; i < solutions.length; i++) {
+                console.log(solutions[i][0] + "," + solutions[i][1]);
+            }
+
+            //remove redundant edges in solution
+            var uniqueSol = [];
+            solutions.forEach(function (e) {
+                for (var j = 0; j < uniqueSol.length; j++) {
+                    if (uniqueSol[j][0] === e[0] && uniqueSol[j][1] === e[1])
+                        return;
+
+                    // solutions [[3,1],[1,2],[2,3],[2,1],[3,1]]
+                    // uniqueSol [[3,1],[1,2],[2,3]]
+                    // FIX THIS ****** check cycle and remove
+                    if (uniqueSol[j][0] === e[1] && uniqueSol[j][1] === e[0])
+                        return;
+                }
+                uniqueSol.push(e);
+            });
+
+            console.log("Redundancy:");
+            for (var i = 0; i < uniqueSol.length; i++) {
+                console.log(uniqueSol[i][0] + "," + uniqueSol[i][1]);
+            }
+            draw(uniqueSol);
+        }
+    };
+
+    function draw(result) {
+        var links = [];
+        for (var i = 0; i < result.length; i++) {
+            links.push({
+                source: result[i][0],
+                target: result[i][1],
+                weight: result[i][2],
+                species: result[i][3]
+            });
+        }
+
+        var nodes = {};
+
+        // Compute the distinct nodes from the links.
+        links.forEach(function (link) {
+            link.source = nodes[link.source] ||
+                    (nodes[link.source] = {name: link.source});
+            //console.log(link.source);
+
+            link.target = nodes[link.target] ||
+                    (nodes[link.target] = {name: link.target});
+            //console.log(link.target);
+        });
+
+        var g = document.getElementById("#svgVisualize"),
+                width = window.innerWidth,
+                height = window.innerHeight;
+
+        var svg = d3.select("#svgVisualize").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+
+        function updateWindow() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            svg.attr("width", width).attr("height", height);
+        }
+
+        window.onresize = updateWindow;
+
+        var color = d3.scale.category20();
+
+        var force = d3.layout.force()
+                .nodes(d3.values(nodes))
+                .links(links)
+                .size([width, height])
+                .linkDistance(100)
+                .charge(-100)
+                .on("tick", tick)
+                .start();
+
+        // build the arrow.
+        svg.append("svg:defs").selectAll("marker")
+                .data(["end"])      // Different link/path types can be defined here
+                .enter().append("svg:marker")    // This section adds in the arrows
+                .attr("id", String)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 15)
+                .attr("refY", -1.5)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("svg:path")
+                .attr("d", "M0,-5L10,0L0,5");
+
+        //filter unique species from the result
+        var species = [];
+        var py = 20;
+
+        for (var i = 0; i < result.length; i++) {
+            species[i] = result[i][3];
+        }
+
+        species = species.filter(function (item, pos) {
+            return species.indexOf(item) == pos;
+        })
+
+        // add the links and the arrows
+        var path = svg.append("svg:g").selectAll("path")
+                .data(force.links())
+                .enter().append("svg:path")
+                .attr("class", "link")
+                .style("stroke", function (d) {
+                    for (var i = 0; i < species.length; i++) {
+                        if (d.species == species[i]) {
+                            svg.append("text")
+                                    .style("font", "14px sans-serif")
+                                    .attr("stroke", color(d.species))
+                                    .attr("x", 10)
+                                    .attr("y", py)
+                                    .text(d.species)
+
+                            //forward one step to get distinct color
+                            color(d.species + 1);
+                            py = py + 20;
+                            species[i] = "";
+                            break;
+                        }
+                    }
+
+                    return color(d.species);
+                })
+                .attr("marker-end", "url(#end)");
+
+        // define the nodes
+        var node = svg.selectAll(".node")
+                .data(force.nodes())
+                .enter().append("g")
+                .attr("class", "node")
+                .call(force.drag);
+
+        // add the nodes
+        node.append("circle")
+                .attr("r", 5);
+
+        // add the text
+        node.append("text")
+                .attr("x", 12)
+                .attr("dy", ".35em")
+                .text(function (d) {
+                    return d.name;
+                });
+
+        // add the curvy lines
+        function tick() {
+            path.attr("d", function (d) {
+                var dx = d.target.x - d.source.x,
+                        dy = d.target.y - d.source.y,
+                        dr = Math.sqrt(dx * dx + dy * dy);
+                return "M" +
+                        d.source.x + "," +
+                        d.source.y + "A" +
+                        dr + "," + dr + " 0 0,1 " +
+                        d.target.x + "," +
+                        d.target.y;
+            });
+
+            node.attr("transform", function (d) {
+                return "translate(" + d.x + "," + d.y + ")";
+            });
+        }
+    }
+
+</script>
+
+</body>
+</html>

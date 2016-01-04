@@ -124,7 +124,7 @@ genetic.seed = function() {
 	for (i=0;i<this.userData["terms"];++i) {
 		a.push(Math.random()-0.01);
 	}
-	
+
 	return a;
 };
 
@@ -154,7 +154,10 @@ genetic.crossover = function(mother, father) {
 	
 	son[i] = lerp(father[i], mother[i], r);
 	daughter[i] = lerp(mother[i], father[i], r);
-	
+
+	console.log("Son:" + son + " " + "Daughter:" + daughter);
+	console.log([son, daughter]);
+
 	return [son, daughter];
 };
 
