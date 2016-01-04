@@ -51,6 +51,28 @@ var x = function () {
         return entity;
     };
 
+    genetic.crossover = function (mother, father) {
+
+        /*
+         * two-point crossover
+         */
+        var len = mother.length;
+        var ca = Math.floor(Math.random() * len);
+        var cb = Math.floor(Math.random() * len);
+
+        if (ca > cb) {
+            var tmp = cb;
+            cb = ca;
+            ca = tmp;
+        }
+
+        var son = father.slice(0, ca).concat(mother.slice(ca, cb)).concat(father.slice(cb));
+        var daughter = mother.slice(0, ca).concat(father.slice(ca, cb)).concat(mother.slice(cb));
+
+        return [son, daughter];
+    };
+
+
     console.log("Hello");
     var g = new Graph();
     console.log(g);
