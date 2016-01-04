@@ -240,7 +240,7 @@ genetic.fitness = function (entity) {
              * If SearchList[i] has a path to or from SearchList[j]
              * Then update FoundList and AttemptedList
              */
-            if (map.hasPath(SearchList[i], SearchList[j]) || map.hasPath(SearchList[j], SearchList[i])) {
+            if (graph1.hasPath(SearchList[i], SearchList[j])) {
                 FoundList = FoundList.concat(j);
                 AttemptedList[j] = true;
             }
