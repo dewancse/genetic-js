@@ -195,7 +195,6 @@ var x = function () {
         return fitness;
     };
 
-
     console.log("Hello");
     var g = new Graph();
     console.log(g);
