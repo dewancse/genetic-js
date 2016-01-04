@@ -195,6 +195,38 @@ var x = function () {
         return fitness;
     };
 
+    genetic.generation = function (pop, generation, stats) {
+        console.log("Generation: " + generation);
+    };
+
+    genetic.notification = function (pop, generation, stats, isFinished) {
+
+        if (isFinished) {
+            var solutions = [];
+
+            for (var i = 0; i < pop.length; i++) {
+                console.log("Length: ", +pop.length);
+                solutions.push(pop[i].entity);
+            }
+
+            var len = this.userData["edges"].length;
+            var edges = this.userData["edges"];
+            for (var i = 0; i < solutions.length; i++) {
+                var GAresult = [];
+                for (var j = 0; j < len; j++) {
+                    if (solutions[i][j] == 1) {
+                        GAresult.push(edges[j]);
+                    }
+                }
+
+                console.log(solutions[i]);
+                console.log(GAresult);
+
+                draw(GAresult);
+            }
+        }
+    };
+
     console.log("Hello");
     var g = new Graph();
     console.log(g);

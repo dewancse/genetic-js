@@ -290,8 +290,6 @@ genetic.notification = function (pop, generation, stats, isFinished) {
             solutions.push(pop[i].entity);
         }
 
-//            console.log(solutions);
-
         var len = this.userData["edges"].length;
         var edges = this.userData["edges"];
         for (var i = 0; i < solutions.length; i++) {
